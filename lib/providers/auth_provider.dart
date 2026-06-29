@@ -31,10 +31,16 @@ class AuthProvider extends ChangeNotifier {
       }
 
       // Try fetching current user profile to validate token
+      // GET /api/auth/profile
       final response = await ApiService.instance.get(ApiConstants.me);
-      final userData = response['data'] ?? response['user'] ?? response;
-      _user = UserModel.fromJson(userData as Map<String, dynamic>);
-      _setStatus(AuthStatus.authenticated);
+      final userData = _extractUserData(response);
+      if (userData != null) {
+        _user = UserModel.fromJson(userData);
+        _setStatus(AuthStatus.authenticated);
+      } else {
+        await TokenStorage.clearAll();
+        _setStatus(AuthStatus.unauthenticated);
+      }
     } catch (_) {
       // Token expired or invalid
       await TokenStorage.clearAll();
@@ -43,6 +49,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────────
+  /// Response format:
+  /// {
+  ///   "success": true,
+  ///   "data": {
+  ///     "access_token": "...",
+  ///     "refresh_token": "...",
+  ///     "user": { "id": "uuid", "email": "...", "full_name": "...", ... }
+  ///   }
+  /// }
   Future<bool> login(String email, String password) async {
     _setLoading();
     try {
@@ -52,19 +67,28 @@ class AuthProvider extends ChangeNotifier {
         requiresAuth: false,
       );
 
-      final token = _extractToken(response);
-      if (token == null) {
+      // Check success flag
+      if (response is Map && response['success'] == false) {
+        _setError(response['message']?.toString() ?? 'Login gagal');
+        return false;
+      }
+
+      // Extract token — API returns data.access_token
+      final data = response['data'] ?? response;
+      final token = data['access_token']?.toString() ??
+          data['token']?.toString();
+
+      if (token == null || token.isEmpty) {
         _setError('Token tidak ditemukan dalam respons');
         return false;
       }
 
       await TokenStorage.saveToken(token);
 
-      final userData = response['data'] ??
-          response['user'] ??
-          (response is Map ? response : null);
+      // Extract user
+      final userData = _extractUserData(data) ?? _extractUserData(response);
       if (userData != null) {
-        _user = UserModel.fromJson(userData as Map<String, dynamic>);
+        _user = UserModel.fromJson(userData);
         await _cacheUserData(_user!);
       }
 
@@ -80,8 +104,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // ── Register ──────────────────────────────────────────────────────────────────
+  /// Request body: { full_name, email, password }
+  /// Response: { success: true, data: { user: {...} } }  — NO token returned
+  /// → Must login separately after register
   Future<bool> register({
-    required String name,
+    required String fullName,
     required String email,
     required String password,
     String? phone,
@@ -89,7 +116,7 @@ class AuthProvider extends ChangeNotifier {
     _setLoading();
     try {
       final body = <String, dynamic>{
-        'name': name,
+        'full_name': fullName,   // ← API uses 'full_name', not 'name'
         'email': email,
         'password': password,
       };
@@ -101,20 +128,22 @@ class AuthProvider extends ChangeNotifier {
         requiresAuth: false,
       );
 
-      final token = _extractToken(response);
-      if (token != null) {
-        await TokenStorage.saveToken(token);
-
-        final userData = response['data'] ?? response['user'];
-        if (userData != null) {
-          _user = UserModel.fromJson(userData as Map<String, dynamic>);
-          await _cacheUserData(_user!);
+      if (response is Map && response['success'] == false) {
+        // Extract validation errors if any
+        final errors = response['errors'];
+        String msg = response['message']?.toString() ?? 'Registrasi gagal';
+        if (errors is List && errors.isNotEmpty) {
+          msg = errors
+              .map((e) => e['message']?.toString() ?? '')
+              .where((s) => s.isNotEmpty)
+              .join(', ');
         }
-        _setStatus(AuthStatus.authenticated);
-      } else {
-        // Some APIs require login after register
-        _setStatus(AuthStatus.unauthenticated);
+        _setError(msg);
+        return false;
       }
+
+      // This API does NOT return a token on register — redirect to login
+      _setStatus(AuthStatus.unauthenticated);
       return true;
     } on ApiException catch (e) {
       _setError(e.message);
@@ -130,7 +159,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await ApiService.instance.post(ApiConstants.logout);
     } catch (_) {
-      // Ignore logout API error
+      // Ignore logout API error — clear local session regardless
     } finally {
       await TokenStorage.clearAll();
       _user = null;
@@ -142,32 +171,56 @@ class AuthProvider extends ChangeNotifier {
   Future<void> refreshUser() async {
     try {
       final response = await ApiService.instance.get(ApiConstants.me);
-      final userData = response['data'] ?? response['user'] ?? response;
-      _user = UserModel.fromJson(userData as Map<String, dynamic>);
-      await _cacheUserData(_user!);
-      notifyListeners();
+      final userData = _extractUserData(response);
+      if (userData != null) {
+        _user = UserModel.fromJson(userData);
+        await _cacheUserData(_user!);
+        notifyListeners();
+      }
     } catch (_) {
       // Silently fail
     }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
-  String? _extractToken(dynamic response) {
-    if (response is Map) {
-      return response['token']?.toString() ??
-          response['access_token']?.toString() ??
-          response['accessToken']?.toString();
+
+  /// Tries to find the user map from various possible response shapes.
+  Map<String, dynamic>? _extractUserData(dynamic response) {
+    if (response is! Map) return null;
+
+    final data = response['data'];
+
+    // Shape from /auth/profile: { success, data: { id, email, full_name, ... } }
+    if (data is Map && data.containsKey('email')) {
+      return Map<String, dynamic>.from(data);
     }
+
+    // Shape from /auth/login: { data: { access_token, user: {...} } }
+    if (data is Map && data['user'] is Map) {
+      return Map<String, dynamic>.from(data['user'] as Map);
+    }
+
+    // Shape: { user: {...} }
+    if (response['user'] is Map) {
+      return Map<String, dynamic>.from(response['user'] as Map);
+    }
+
+    // Shape: already-flat user object { email: ..., full_name: ... }
+    if (response.containsKey('email') && response.containsKey('id')) {
+      return Map<String, dynamic>.from(response);
+    }
+
     return null;
   }
 
   Future<void> _cacheUserData(UserModel user) async {
     await TokenStorage.saveUserData(
-      userId: user.id,
+      userId: user.id,      // String UUID
       name: user.name,
       email: user.email,
       phone: user.phone,
       avatar: user.avatar,
+      role: user.role,
     );
   }
 

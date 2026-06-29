@@ -8,6 +8,7 @@ class TokenStorage {
   static const _keyUserEmail = 'af_craft_user_email';
   static const _keyUserPhone = 'af_craft_user_phone';
   static const _keyUserAvatar = 'af_craft_user_avatar';
+  static const _keyUserRole = 'af_craft_user_role';
 
   // ── Token ─────────────────────────────────────────────────────────────────────
   static Future<void> saveToken(String token) async {
@@ -26,34 +27,36 @@ class TokenStorage {
   }
 
   // ── User Data ─────────────────────────────────────────────────────────────────
+  /// userId is a UUID string (not int) in this API
   static Future<void> saveUserData({
-    required int userId,
+    required String userId,   // UUID string
     required String name,
     required String email,
     String? phone,
     String? avatar,
+    String? role,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    await Future.wait([
-      prefs.setInt(_keyUserId, userId),
-      prefs.setString(_keyUserName, name),
-      prefs.setString(_keyUserEmail, email),
-      if (phone != null) prefs.setString(_keyUserPhone, phone),
-      if (avatar != null) prefs.setString(_keyUserAvatar, avatar),
-    ]);
+    await prefs.setString(_keyUserId, userId);
+    await prefs.setString(_keyUserName, name);
+    await prefs.setString(_keyUserEmail, email);
+    if (phone != null) await prefs.setString(_keyUserPhone, phone);
+    if (avatar != null) await prefs.setString(_keyUserAvatar, avatar);
+    if (role != null) await prefs.setString(_keyUserRole, role);
   }
 
   static Future<Map<String, dynamic>?> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getInt(_keyUserId);
+    final userId = prefs.getString(_keyUserId);
     if (userId == null) return null;
 
     return {
       'id': userId,
-      'name': prefs.getString(_keyUserName) ?? '',
+      'full_name': prefs.getString(_keyUserName) ?? '',
       'email': prefs.getString(_keyUserEmail) ?? '',
       'phone': prefs.getString(_keyUserPhone) ?? '',
-      'avatar': prefs.getString(_keyUserAvatar) ?? '',
+      'avatar_url': prefs.getString(_keyUserAvatar) ?? '',
+      'role': prefs.getString(_keyUserRole) ?? 'customer',
     };
   }
 
@@ -77,6 +80,7 @@ class TokenStorage {
       prefs.remove(_keyUserEmail),
       prefs.remove(_keyUserPhone),
       prefs.remove(_keyUserAvatar),
+      prefs.remove(_keyUserRole),
     ]);
   }
 }
