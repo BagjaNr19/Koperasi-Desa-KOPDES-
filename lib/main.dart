@@ -1,60 +1,56 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-
-import 'core/app_routes.dart';
-import 'core/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
+import 'providers/cart_provider.dart';
+import 'providers/order_provider.dart';
+import 'providers/wishlist_provider.dart';
+import 'providers/theme_provider.dart';
+import 'pages/splash_page.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().init();
 
-  // Lock to portrait mode
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  // Status bar style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
-
-  runApp(const AfCraftApp());
-}
-
-class AfCraftApp extends StatelessWidget {
-  const AfCraftApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
+  runApp(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => WishlistProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp(
-        title: 'AF Craft & Co.',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        initialRoute: AppRoutes.splash,
-        routes: AppRoutes.routes,
-        builder: (context, child) {
-          // Prevent text scaling beyond a factor of 1.2
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaler.scale(1.0).clamp(0.85, 1.2),
-              ),
-            ),
-            child: child!,
-          );
-        },
+      child: const MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    return MaterialApp(
+      title: 'KOPDES Mobile',
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.light),
+        useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        primarySwatch: Colors.green,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, brightness: Brightness.dark),
+        useMaterial3: true,
+      ),
+      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      home: const SplashPage(),
     );
   }
 }
