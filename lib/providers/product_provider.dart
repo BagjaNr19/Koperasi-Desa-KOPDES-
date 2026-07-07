@@ -7,7 +7,7 @@ import '../services/product_service.dart';
 class ProductProvider extends ChangeNotifier {
   final ProductService _productService = ProductService();
 
-  List<ProductModel> _products = [];
+  final List<ProductModel> _products = [];
   List<CategoryModel> _categories = [];
   ProductModel? _selectedProduct;
   List<ReviewModel> _reviews = [];

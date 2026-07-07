@@ -8,7 +8,7 @@ import 'cart_page.dart';
 import 'wishlist_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -178,7 +178,7 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: ActionChip(
                         label: const Text('Semua'),
-                        backgroundColor: productProvider.currentCategoryId == null ? Colors.green.withOpacity(0.2) : null,
+                        backgroundColor: productProvider.currentCategoryId == null ? Colors.green.withValues(alpha: 0.2) : null,
                         onPressed: () {
                           productProvider.getProducts(categoryId: null);
                         },
@@ -191,7 +191,7 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: ActionChip(
                       label: Text(category.name),
-                      backgroundColor: productProvider.currentCategoryId == category.id ? Colors.green.withOpacity(0.2) : null,
+                      backgroundColor: productProvider.currentCategoryId == category.id ? Colors.green.withValues(alpha: 0.2) : null,
                       onPressed: () {
                         productProvider.getProducts(
                           categoryId: category.id,

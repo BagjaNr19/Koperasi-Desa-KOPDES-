@@ -7,7 +7,7 @@ import '../services/notification_service.dart';
 import 'order_success_page.dart';
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({Key? key}) : super(key: key);
+  const CheckoutPage({super.key});
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();

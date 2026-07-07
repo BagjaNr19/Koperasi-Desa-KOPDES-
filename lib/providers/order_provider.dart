@@ -6,7 +6,7 @@ import '../services/order_service.dart';
 class OrderProvider extends ChangeNotifier {
   final OrderService _orderService = OrderService();
 
-  List<OrderModel> _orders = [];
+  final List<OrderModel> _orders = [];
   OrderDetailModel? _selectedOrder;
   bool _isLoading = false;
   String _errorMessage = '';

@@ -10,7 +10,7 @@ import '../services/review_service.dart';
 class ProductDetailPage extends StatefulWidget {
   final String productId;
 
-  const ProductDetailPage({Key? key, required this.productId}) : super(key: key);
+  const ProductDetailPage({super.key, required this.productId});
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
@@ -188,12 +188,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   ? IconButton(
                                       icon: const Icon(Icons.delete, size: 20, color: Colors.red),
                                       onPressed: () async {
+                                        final provider = Provider.of<ProductProvider>(context, listen: false);
+                                        final messenger = ScaffoldMessenger.of(context);
                                         try {
                                           await ReviewService().deleteReview(review.id ?? '');
-                                          Provider.of<ProductProvider>(context, listen: false).getProductReviews(widget.productId);
-                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ulasan dihapus')));
+                                          
+                                          if (!mounted) return;
+                                          provider.getProductReviews(widget.productId);
+                                          messenger.showSnackBar(const SnackBar(content: Text('Ulasan dihapus')));
                                         } catch (e) {
-                                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                                          if (!mounted) return;
+                                          messenger.showSnackBar(SnackBar(content: Text(e.toString())));
                                         }
                                       },
                                     )

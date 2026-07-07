@@ -5,7 +5,7 @@ import 'home_page.dart';
 import 'login_page.dart';
 
 class SplashPage extends StatefulWidget {
-  const SplashPage({Key? key}) : super(key: key);
+  const SplashPage({super.key});
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -19,10 +19,12 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   void _checkLogin() async {
+    // Ambil authProvider sebelum async gap
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     // Beri sedikit jeda agar logo splash screen terlihat
     await Future.delayed(const Duration(seconds: 2));
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     bool isLoggedIn = await authProvider.checkLogin();
 
     if (!mounted) return;

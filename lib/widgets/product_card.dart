@@ -6,7 +6,7 @@ import '../pages/product_detail_page.dart';
 class ProductCard extends StatelessWidget {
   final ProductModel product;
 
-  const ProductCard({Key? key, required this.product}) : super(key: key);
+  const ProductCard({super.key, required this.product});
 
   @override
   Widget build(BuildContext context) {

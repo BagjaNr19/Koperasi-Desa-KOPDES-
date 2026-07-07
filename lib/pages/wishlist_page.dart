@@ -5,7 +5,7 @@ import '../providers/product_provider.dart';
 import '../widgets/product_card.dart';
 
 class WishlistPage extends StatelessWidget {
-  const WishlistPage({Key? key}) : super(key: key);
+  const WishlistPage({super.key});
 
   @override
   Widget build(BuildContext context) {

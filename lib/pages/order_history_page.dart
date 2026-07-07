@@ -5,7 +5,7 @@ import '../providers/order_provider.dart';
 import 'order_detail_page.dart';
 
 class OrderHistoryPage extends StatefulWidget {
-  const OrderHistoryPage({Key? key}) : super(key: key);
+  const OrderHistoryPage({super.key});
 
   @override
   State<OrderHistoryPage> createState() => _OrderHistoryPageState();
@@ -89,7 +89,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                   trailing: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(order.status).withOpacity(0.1),
+                                      color: _getStatusColor(order.status).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: _getStatusColor(order.status)),
                                     ),
